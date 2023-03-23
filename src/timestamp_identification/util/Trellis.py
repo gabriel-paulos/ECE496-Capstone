@@ -1,7 +1,7 @@
 import torch
 
 from typing import Tuple, List
-from util import LabelPoint
+from . import LabelPoint
 
 
 class Trellis:

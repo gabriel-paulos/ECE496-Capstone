@@ -4,10 +4,10 @@ import torchaudio
 
 from typing import Tuple, List
 
-from util import LabelPoint, Segment, Trellis
+from .util import LabelPoint, Segment, Trellis
 
-import torchaudio.pipelines.WAV2VEC2_ASR_LARGE_960H as WAV2VEC2
-import torchaudio.functional.resample as resample
+from torchaudio.pipelines import WAV2VEC2_ASR_BASE_960H as WAV2VEC2
+from torchaudio.functional import resample as resample
 
 
 def identify(audio_file_path,

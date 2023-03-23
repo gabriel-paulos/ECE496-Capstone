@@ -1,10 +1,10 @@
 import torch
 import torchaudio
 
-import torchaudio.pipelines.WAV2VEC2_ASR_LARGE_960H as WAV2VEC2
-import torchaudio.functional.resample as resample
+from torchaudio.pipelines import WAV2VEC2_ASR_BASE_960H as WAV2VEC2
+from torchaudio.functional import resample as resample
 
-from util import GreedyCTCDecoder
+from .util import GreedyCTCDecoder
 
 
 def generate(audio_file_path,
@@ -12,7 +12,7 @@ def generate(audio_file_path,
              labels=WAV2VEC2.get_labels(),
              model_sample_rate=WAV2VEC2.sample_rate):
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = "cpu"#torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = default_model.to(device)
 
     label_probabilities = get_label_probabilities(
@@ -21,7 +21,7 @@ def generate(audio_file_path,
                                                 model,
                                                 model_sample_rate)
 
-    decoder = GreedyCTCDecoder(labels=labels)
+    decoder = GreedyCTCDecoder.GreedyCTCDecoder(labels)
     transcript = decoder(label_probabilities)
 
     return transcript
