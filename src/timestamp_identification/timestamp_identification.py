@@ -21,7 +21,7 @@ def detection(audio_file_path,
     model = default_model.to(device)
 
     label_probabilities, waveform_size = get_label_probabilities(
-                                                            waveform,
+                                                            device,
                                                             audio_file_path,
                                                             model,
                                                             model_sample_rate)
@@ -45,7 +45,7 @@ def detection(audio_file_path,
     return final_path
 
 
-def get_label_probabilities(waveform,
+def get_label_probabilities(device,
                             audio_file_path,
                             model,
                             model_sample_rate):
