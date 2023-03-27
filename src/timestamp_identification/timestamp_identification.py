@@ -4,7 +4,8 @@ import torchaudio
 
 from typing import Tuple, List
 
-from .util import LabelPoint, Segment, Trellis
+from .util.LabelPoint import LabelPoint, Segment
+from .util.Trellis import Trellis
 
 from torchaudio.pipelines import WAV2VEC2_ASR_BASE_960H as WAV2VEC2
 from torchaudio.functional import resample as resample
@@ -16,7 +17,7 @@ def identify(audio_file_path,
              labels=WAV2VEC2.get_labels(),
              model_sample_rate=WAV2VEC2.sample_rate):
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = "cpu"#torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = default_model.to(device)
 
     label_probabilities, waveform_size = get_label_probabilities(
@@ -60,8 +61,8 @@ def get_label_probabilities(device,
 
 def preprocess_transcript(transcript: str, labels: Tuple[str]) -> str:
 
-    bar_transcript = transcript.replace(" ", "|")
-    token_only_transcript = str(c for c in bar_transcript if c in labels)
+    bar_transcript = transcript.replace(" ", "|").replace("||", "|")
+    token_only_transcript = "".join([c for c in bar_transcript if c in labels])
     final_transcript = token_only_transcript.upper()
 
     return final_transcript
@@ -81,10 +82,11 @@ def merge_repeated_labels_in_path(path: List[LabelPoint],
         averaged_score = sum(path[k].score for k in range(i, j)) / (j - i)
         segmented_path.append(
                              Segment(
-                                    averaged_score,
                                     transcript[path[i].token_index],
+                                    averaged_score,
                                     path[i].time_index,
                                     path[j - 1].time_index + 1))
+        i = j
 
     return segmented_path
 
@@ -102,8 +104,8 @@ def merge_labels_by_boundary(segmented_path: List[Segment],
                 segments = segmented_path[i:j]
                 word_label = "".join([segment.label for segment in segments])
                 weighted_word_score = sum(
-                    segment.score * segment.length for segment in segments) \
-                    / sum(segment.length for segment in segments)
+                    segment.score * len(segment) for segment in segments) \
+                    / sum(len(segment) for segment in segments)
                 boundary_segmented_path.append(
                                             Segment(word_label,
                                                     weighted_word_score,

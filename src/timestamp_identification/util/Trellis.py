@@ -1,7 +1,7 @@
 import torch
 
 from typing import Tuple, List
-from . import LabelPoint
+from .LabelPoint import LabelPoint
 
 
 class Trellis:
@@ -39,7 +39,6 @@ class Trellis:
         token_index = self.graph.size(1) - 1
         time_index_start = torch.argmax(self.graph[:, token_index]).item()
 
-        path = []
         for time_index in range(time_index_start, 0, -1):
 
             stay_score = self.graph[time_index - 1, token_index]
@@ -65,4 +64,4 @@ class Trellis:
         else:
             raise ValueError("Alignment Failure")
 
-        return path[::-1]
+        return self.path[::-1].copy()
