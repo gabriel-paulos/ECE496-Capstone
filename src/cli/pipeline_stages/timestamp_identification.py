@@ -1,26 +1,32 @@
 import torch
 import numpy
 import torchaudio
-
+import re
 from typing import Tuple, List
 
-from .util.LabelPoint import LabelPoint, Segment
-from .util.Trellis import Trellis
-
-from torchaudio.pipelines import WAV2VEC2_ASR_BASE_960H as WAV2VEC2
+from torchaudio.pipelines import WAV2VEC2_ASR_LARGE_960H as WAV2VEC2
 from torchaudio.functional import resample as resample
+
+from .util.timestamp_identification_utils import Trellis, Segment, LabelPoint
 
 
 def identify(audio_file_path,
              transcript,
+             audio_offset,
+             label_probabilities=None,
+             waveform_size=None,
              default_model=WAV2VEC2.get_model(),
              labels=WAV2VEC2.get_labels(),
              model_sample_rate=WAV2VEC2.sample_rate):
 
-    device = "cpu"#torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if transcript is None or transcript == "":
+        return []
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = default_model.to(device)
 
-    label_probabilities, waveform_size = get_label_probabilities(
+    if label_probabilities is None or waveform_size is None:
+        label_probabilities, waveform_size = get_label_probabilities(
                                                             device,
                                                             audio_file_path,
                                                             model,
@@ -30,17 +36,24 @@ def identify(audio_file_path,
 
     trellis = Trellis(processed_transcript, labels, label_probabilities)
 
-    found_path = trellis.backtrack()
+    try:
+        found_path = trellis.backtrack()
+    except Exception:
+        print(f"Alignment failure: {transcript}")
+        return []
 
     segmented_path = merge_repeated_labels_in_path(found_path,
                                                    processed_transcript)
 
     boundary_segmented_path = merge_labels_by_boundary(segmented_path, "|")
 
-    final_path = normalize_by_sampling_rate(boundary_segmented_path,
-                                            model_sample_rate,
-                                            waveform_size,
-                                            trellis.graph.size(0) - 1)
+    normalized_path = normalize_by_sampling_rate(boundary_segmented_path,
+                                                 model_sample_rate,
+                                                 waveform_size,
+                                                 trellis.graph.size(0) - 1,
+                                                 audio_offset)
+
+    final_path = filter_filler_word(normalized_path)
 
     return final_path
 
@@ -122,7 +135,8 @@ def merge_labels_by_boundary(segmented_path: List[Segment],
 def normalize_by_sampling_rate(segmented_path: List[Segment],
                                sampling_rate,
                                waveform_size,
-                               trellis_size) -> List[Segment]:
+                               trellis_size,
+                               audio_offset) -> List[Segment]:
 
     normalized_segmented_path = []
 
@@ -134,7 +148,24 @@ def normalize_by_sampling_rate(segmented_path: List[Segment],
         normalized_segmented_path.append(Segment(
                                              segment.label,
                                              segment.score,
-                                             start,
-                                             end))
+                                             start + audio_offset,
+                                             end + audio_offset))
 
     return normalized_segmented_path
+
+
+def filter_filler_word(normalized_segmented_path):
+
+    words_marked_for_deletion = []
+
+    umm_match = re.compile("^UH*M*$")
+    emm_match = re.compile("^EU*H*M+$")
+    amm_match = re.compile("^AH*M+$")
+
+    match_list = [umm_match, emm_match, amm_match]
+
+    for word in normalized_segmented_path:
+        if any(filter.match(word.label) for filter in match_list):
+            words_marked_for_deletion.append(word)
+
+    return words_marked_for_deletion
