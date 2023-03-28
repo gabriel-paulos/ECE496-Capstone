@@ -23,7 +23,7 @@ def extract(filename: str, audio_chunk_size=20, no_split=False, output_filename=
         return [output_filename]
 
     for i in tqdm(range(0, int(clip.duration), audio_chunk_size), desc="Extracting audio"):
-        subclip_end = min(i + audio_chunk_size, clip.duration)
+        subclip_end = min(i + audio_chunk_size, int(clip.duration))
         subclip = clip.subclip(i, subclip_end)
         audio_file = tempfile.NamedTemporaryFile(prefix=f"{i}_", suffix=".wav")
         subclip.audio.write_audiofile(audio_file.name, logger=None)

@@ -159,8 +159,8 @@ def filter_filler_word(normalized_segmented_path):
     words_marked_for_deletion = []
 
     umm_match = re.compile("^UH*M*$")
-    emm_match = re.compile("^EU*H*M+$")
-    amm_match = re.compile("^AH*M+$")
+    emm_match = re.compile("^EU*H*M*$")
+    amm_match = re.compile("^A[HM]+[HM]*$")
 
     match_list = [umm_match, emm_match, amm_match]
 
