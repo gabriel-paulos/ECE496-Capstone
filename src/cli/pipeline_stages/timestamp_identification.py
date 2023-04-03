@@ -1,9 +1,10 @@
-import torch
-import numpy
-import torchaudio
 import re
 from typing import Tuple, List
 
+import torch
+import numpy
+import torchaudio
+from transformers import BertTokenizer, BertForMaskedLM
 from torchaudio.pipelines import WAV2VEC2_ASR_LARGE_960H as WAV2VEC2
 from torchaudio.functional import resample as resample
 
@@ -53,7 +54,9 @@ def identify(audio_file_path,
                                                  trellis.graph.size(0) - 1,
                                                  audio_offset)
 
-    final_path = filter_filler_word(normalized_path)
+    normalized_transcript = transcript.replace(" ", "|")
+
+    final_path = filter_filler_word(normalized_transcript, normalized_path)
 
     return final_path
 
@@ -154,18 +157,45 @@ def normalize_by_sampling_rate(segmented_path: List[Segment],
     return normalized_segmented_path
 
 
-def filter_filler_word(normalized_segmented_path):
+def filter_filler_word(normalized_transcript, normalized_segmented_path, 
+                       analysis_tokenizer=BertTokenizer.from_pretrained("bert-large-cased"),
+                       analysis_model=BertForMaskedLM.from_pretrained("bert-large-cased", return_dict=True)):
 
     words_marked_for_deletion = []
 
-    umm_match = re.compile("^UH*M*$")
+    amm_match = re.compile("^AH*M*$")
     emm_match = re.compile("^EU*H*M*$")
-    amm_match = re.compile("^A[HM]+[HM]*$")
+    omm_match = re.compile("^OU*H*M*$")
+    umm_match = re.compile("^UH*M*$")
 
-    match_list = [umm_match, emm_match, amm_match]
+    match_list = [amm_match, emm_match, omm_match, umm_match]
 
-    for word in normalized_segmented_path:
+    for i, word in enumerate(normalized_segmented_path):
+
+        if word.score < 0.7:
+            continue
+
         if any(filter.match(word.label) for filter in match_list):
+
+            empty_input = analysis_tokenizer.encode_plus(normalized_transcript.replace("[MASK]", ""), return_tensors="pt")
+            empty_output = analysis_model(**empty_input)
+            empty_log_softmax = sum([torch.log(torch.nn.functional.softmax(empty_output.logits[0][i], dim=-1)[idx])
+                                               for i, idx in enumerate(empty_input['input_ids'][0]) ]).item()
+
+            filler_input = analysis_tokenizer.encode_plus(normalized_transcript.replace("[MASK]", word.label), return_tensors="pt")
+            filler_output = analysis_model(**filler_input)
+            filler_log_softmax = sum([torch.log(torch.nn.functional.softmax(filler_output.logits[0][i], dim=-1)[idx])
+                                        for i, idx in enumerate(filler_input['input_ids'][0]) ]).item()
+
+            if filler_log_softmax < empty_log_softmax:
+                continue
+
+            if i != 0:
+                word.start = normalized_segmented_path[i - 1].end
+
+            if i != len(normalized_segmented_path) - 1:
+                word.end = normalized_segmented_path[i + 1].start
+
             words_marked_for_deletion.append(word)
 
     return words_marked_for_deletion
