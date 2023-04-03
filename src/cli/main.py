@@ -5,16 +5,27 @@ from pipeline_stages import audio_extraction as stage1
 from pipeline_stages import transcription_generation as stage2
 from pipeline_stages import timestamp_identification as stage3
 
+DEPTH ={
+  "e": "EXTRACT_AUDIO",
+  "g": "GENERATE_TIMESTAMSP",
+  "i" : "IDENTIFY_TIMESTAMPS",
+  "f" : "FULL",
+}
 
-def main():
+@click.command()
+@click.option("--input","-i",nargs=1,prompt = "Input file path",type = click.Path(exists=True),help = "Input file name")
+@click.option("--output","-o", nargs=1, prompt = "Output file path",type = click.Path(exists=False), help = "Output folder")
+@click.option("--chunk","-c",type = int, show_default = True, default = 20, help = "Audio chunk size")
+@click.option("--depth","-d", show_default = True, default = "f",type = click.Choice(DEPTH.keys()), help= "Pipeline depth")
+def main(input,output,chunk,depth):
 
     # put cli code here, some relevant options to capture below
-
-    video_filename = "../test_file.mp4"
-    # output_filename = "../test_file_edited.mp4"
-    audio_chunk_size = 40
-    run_pipeline_depth = "FULL"  # allowed values: EXTRACT_AUDIO, GENERATE_TRANSCRIPT, IDENTIFY_TIMESTAMPS, FULL
-
+    #print(type(input))	
+    video_filename = input
+    # output_filename = output
+    audio_chunk_size = chunk
+    run_pipeline_depth = DEPTH[depth]  # allowed values: EXTRACT_AUDIO, GENERATE_TRANSCRIPT, IDENTIFY_TIMESTAMPS, FULL
+    
     run_pipeline(video_filename, audio_chunk_size=audio_chunk_size, run_pipeline_depth=run_pipeline_depth)
 
 
