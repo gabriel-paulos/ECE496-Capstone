@@ -10,9 +10,9 @@ from .util.transcription_generation_utils import GreedyCTCDecoder
 def generate(audio_file_path,
              default_model=WAV2VEC2.get_model(),
              labels=WAV2VEC2.get_labels(),
-             model_sample_rate=WAV2VEC2.sample_rate):
+             model_sample_rate=WAV2VEC2.sample_rate,
+             device=torch.device("cuda" if torch.cuda.is_available() else "cpu")):
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = default_model.to(device)
 
     label_probabilities, waveform_size = get_label_probabilities(
@@ -34,6 +34,8 @@ def get_label_probabilities(device,
 
     with torch.inference_mode():
         waveform, audio_sample_rate = torchaudio.load(audio_file_path)
+        if audio_sample_rate < 16000 or audio_sample_rate > 48000:
+            raise ValueError(f"Sampling rate of {audio_sample_rate} is not within 16kHz to 48kHz allowed range!")
         waveform = resample(waveform, audio_sample_rate, model_sample_rate)
         label_logits, _ = model(waveform.to(device))
         label_probabilities = torch.log_softmax(label_logits, dim=-1)
