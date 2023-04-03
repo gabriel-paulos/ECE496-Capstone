@@ -45,7 +45,6 @@ def identify(audio_file_path,
 
     segmented_path = merge_repeated_labels_in_path(found_path,
                                                    processed_transcript)
-
     boundary_segmented_path = merge_labels_by_boundary(segmented_path, "|")
 
     normalized_path = normalize_by_sampling_rate(boundary_segmented_path,
