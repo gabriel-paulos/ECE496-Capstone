@@ -6,9 +6,9 @@ from cli.pipeline_stages import transcription_generation as stage2
 
 
 def extracted_audio_files():
-    sample_dir = "test/test_sample_data/test_transcription_generator_data"
-    audio_clip_paths = [path for path in os.listdir(sample_dir) if path.endswith(".wav")]
-    audio_and_transcript_paths = [(f"{sample_dir}/{path}", f"{sample_dir}/{path.replace('.wav', '.txt')}") for path in audio_clip_paths]
+    test_dir = "test/test_data/test_transcription_generator_data"
+    audio_clip_paths = [path for path in os.listdir(test_dir) if path.endswith(".wav")]
+    audio_and_transcript_paths = [(f"{test_dir}/{path}", f"{test_dir}/{path.replace('.wav', '.txt')}") for path in audio_clip_paths]
     return audio_and_transcript_paths
 
 

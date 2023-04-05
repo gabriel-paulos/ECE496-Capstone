@@ -6,14 +6,14 @@ from cli.pipeline_stages import transcription_generation as stage2
 
 
 def extracted_acceptable_audio_files():
-    sample_dir = "test/test_sample_data/test_sample_rate_data"
-    audio_clip_paths = [f"{sample_dir}/{path}" for path in os.listdir(sample_dir) if path.endswith("_G.wav")]
+    test_dir = "test/test_data/test_sample_rate_data"
+    audio_clip_paths = [f"{test_dir}/{path}" for path in os.listdir(test_dir) if path.endswith("_G.wav")]
     return audio_clip_paths
 
 
 def extracted_unacceptable_audio_files():
-    sample_dir = "test/test_sample_data/test_sample_rate_data"
-    audio_clip_paths = [f"{sample_dir}/{path}" for path in os.listdir(sample_dir) if path.endswith("_L.wav")]
+    test_dir = "test/test_data/test_sample_rate_data"
+    audio_clip_paths = [f"{test_dir}/{path}" for path in os.listdir(test_dir) if path.endswith("_L.wav")]
     return audio_clip_paths
 
 
