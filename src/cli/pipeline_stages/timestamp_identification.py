@@ -177,7 +177,7 @@ def filter_filler_word(normalized_transcript, normalized_segmented_path,
 
     for i, word in enumerate(normalized_segmented_path):
 
-        if word.score < 0.7:
+        if word.score < 0.75:
             continue
 
         if any(filter.match(word.label) for filter in match_list):

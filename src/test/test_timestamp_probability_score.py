@@ -13,7 +13,7 @@ def extracted_audio_files():
 
 
 @pytest.mark.parametrize("extracted_audio_file", extracted_audio_files())
-def test_transcript_lexeme_identification(extracted_audio_file):
+def test_timestamp_probability_score(extracted_audio_file):
 
     transcript, label_probabilities, waveform_size = stage2.generate(extracted_audio_file, device="cpu")
 
