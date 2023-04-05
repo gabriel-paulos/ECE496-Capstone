@@ -1,9 +1,13 @@
+import os
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+os.environ["TRANSFORMERS_VERBOSITY"] = "critical"
+
 import re
 from typing import Tuple, List
 
 import torch
-import numpy
 import torchaudio
+import transformers
 from transformers import BertTokenizer, BertForMaskedLM
 from torchaudio.pipelines import WAV2VEC2_ASR_LARGE_960H as WAV2VEC2
 from torchaudio.functional import resample as resample
@@ -158,7 +162,7 @@ def normalize_by_sampling_rate(segmented_path: List[Segment],
     return normalized_segmented_path
 
 
-def filter_filler_word(normalized_transcript, normalized_segmented_path, 
+def filter_filler_word(normalized_transcript, normalized_segmented_path,
                        analysis_tokenizer=BertTokenizer.from_pretrained("bert-large-cased"),
                        analysis_model=BertForMaskedLM.from_pretrained("bert-large-cased", return_dict=True)):
 
