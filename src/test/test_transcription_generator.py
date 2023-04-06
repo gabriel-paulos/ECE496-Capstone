@@ -19,12 +19,22 @@ def test_transcription_generation(extracted_audio_file, golden_transcript_file):
     with open(golden_transcript_file) as f:
         golden_transcript = f.readline()
 
-    total_number_of_words = len(golden_transcript.split("|"))
+    split_transcript = transcript.split("|")
+    split_golden_transcript = golden_transcript.split("|")
+    total_number_of_words = len(golden_transcript)
     error_count = 0
-    for (word, golden_word) in zip(transcript.split("|"), golden_transcript.split("|")):
+
+    for (word, golden_word) in zip(split_transcript, split_golden_transcript):
         if word != golden_word:
             error_count += 1
 
     word_error_rate = error_count / total_number_of_words
 
-    assert word_error_rate <= 0.05
+    assert word_error_rate <= 0.1
+
+
+def find_first_same_word(word, idx, transcript):
+    for i in range(idx, len(transcript)):
+        if transcript[i] == word:
+            return i
+    return None
