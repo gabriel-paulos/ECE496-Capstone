@@ -7,8 +7,8 @@ from cli.pipeline_stages import timestamp_identification as stage3
 
 
 def extracted_audio_files():
-    test_dir = "test/test_data/test_timestamp_probability_score_data"
-    audio_clip_paths = [path for path in os.listdir(test_dir) if path.endswith(".wav")]
+    test_dir = "test/test_data/test_timestamp_probability_score_data/"
+    audio_clip_paths = [f"{test_dir}/{path}" for path in os.listdir(test_dir) if path.endswith(".wav")]
     return audio_clip_paths
 
 

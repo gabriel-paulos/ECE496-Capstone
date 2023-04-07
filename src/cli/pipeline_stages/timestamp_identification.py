@@ -57,7 +57,7 @@ def identify(audio_file_path,
                                                  trellis.graph.size(0) - 1,
                                                  audio_offset)
 
-    normalized_transcript = transcript.replace(" ", "|")
+    normalized_transcript = transcript.replace("|", " ")
 
     final_path = filter_filler_word(normalized_transcript, normalized_path)
 
@@ -168,7 +168,7 @@ def filter_filler_word(normalized_transcript, normalized_segmented_path,
 
     words_marked_for_deletion = []
 
-    amm_match = re.compile("^AH*M*$")
+    amm_match = re.compile("^AH*M+$")
     emm_match = re.compile("^EU*H*M*$")
     omm_match = re.compile("^OU*H*M*$")
     umm_match = re.compile("^UH*M*$")
@@ -181,19 +181,19 @@ def filter_filler_word(normalized_transcript, normalized_segmented_path,
             continue
 
         if any(filter.match(word.label) for filter in match_list):
+            if any(filter.match(word.label) for filter in [amm_match, omm_match]):
+                empty_input = analysis_tokenizer.encode_plus(normalized_transcript.replace(word.label, ""), return_tensors="pt")
+                empty_output = analysis_model(**empty_input)
+                empty_log_softmax = sum([torch.log(torch.nn.functional.softmax(empty_output.logits[0][i], dim=-1)[idx])
+                                                for i, idx in enumerate(empty_input['input_ids'][0]) ]).item()
 
-            empty_input = analysis_tokenizer.encode_plus(normalized_transcript.replace("[MASK]", ""), return_tensors="pt")
-            empty_output = analysis_model(**empty_input)
-            empty_log_softmax = sum([torch.log(torch.nn.functional.softmax(empty_output.logits[0][i], dim=-1)[idx])
-                                               for i, idx in enumerate(empty_input['input_ids'][0]) ]).item()
+                filler_input = analysis_tokenizer.encode_plus(normalized_transcript, return_tensors="pt")
+                filler_output = analysis_model(**filler_input)
+                filler_log_softmax = sum([torch.log(torch.nn.functional.softmax(filler_output.logits[0][i], dim=-1)[idx])
+                                            for i, idx in enumerate(filler_input['input_ids'][0]) ]).item()
 
-            filler_input = analysis_tokenizer.encode_plus(normalized_transcript.replace("[MASK]", word.label), return_tensors="pt")
-            filler_output = analysis_model(**filler_input)
-            filler_log_softmax = sum([torch.log(torch.nn.functional.softmax(filler_output.logits[0][i], dim=-1)[idx])
-                                        for i, idx in enumerate(filler_input['input_ids'][0]) ]).item()
-
-            if filler_log_softmax < empty_log_softmax:
-                continue
+                if filler_log_softmax > empty_log_softmax:
+                    continue
 
             if i != 0:
                 word.start = normalized_segmented_path[i - 1].end

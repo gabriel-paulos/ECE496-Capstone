@@ -31,10 +31,3 @@ def test_transcription_generation(extracted_audio_file, golden_transcript_file):
     word_error_rate = error_count / total_number_of_words
 
     assert word_error_rate <= 0.1
-
-
-def find_first_same_word(word, idx, transcript):
-    for i in range(idx, len(transcript)):
-        if transcript[i] == word:
-            return i
-    return None
