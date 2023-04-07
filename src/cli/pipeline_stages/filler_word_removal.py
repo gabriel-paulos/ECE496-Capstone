@@ -12,7 +12,7 @@ def edit(filename: str, timestamps, output_filename=None):
     elif filename.endswith(".mp4"):
         clip = mvpe.VideoFileClip(filename)
 
-    for timestamp in timestamps:
+    for timestamp in reversed(timestamps):
         start = str(timedelta(seconds=timestamp.start))
         end = str(timedelta(seconds=timestamp.end))
         clip = clip.cutout(start, end)
