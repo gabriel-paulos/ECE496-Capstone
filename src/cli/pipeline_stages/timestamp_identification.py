@@ -23,7 +23,8 @@ def identify(audio_file_path,
              default_model=WAV2VEC2.get_model(),
              labels=WAV2VEC2.get_labels(),
              model_sample_rate=WAV2VEC2.sample_rate,
-             device=torch.device("cuda" if torch.cuda.is_available() else "cpu")):
+             device=torch.device("cuda" if torch.cuda.is_available() else "cpu"),
+             use_bert=False):
 
     if transcript is None or transcript == "":
         return []
@@ -59,7 +60,7 @@ def identify(audio_file_path,
 
     normalized_transcript = transcript.replace("|", " ")
 
-    final_path = filter_filler_word(normalized_transcript, normalized_path)
+    final_path = filter_filler_word(normalized_transcript, normalized_path, use_bert=use_bert)
 
     return final_path
 
@@ -164,7 +165,8 @@ def normalize_by_sampling_rate(segmented_path: List[Segment],
 
 def filter_filler_word(normalized_transcript, normalized_segmented_path,
                        analysis_tokenizer=BertTokenizer.from_pretrained("bert-large-cased"),
-                       analysis_model=BertForMaskedLM.from_pretrained("bert-large-cased", return_dict=True)):
+                       analysis_model=BertForMaskedLM.from_pretrained("bert-large-cased", return_dict=True),
+                       use_bert=False):
 
     words_marked_for_deletion = []
 
@@ -181,7 +183,8 @@ def filter_filler_word(normalized_transcript, normalized_segmented_path,
             continue
 
         if any(filter.match(word.label) for filter in match_list):
-            if any(filter.match(word.label) for filter in [amm_match, omm_match]):
+
+            if use_bert and any(filter.match(word.label) for filter in [amm_match, omm_match]):
                 empty_input = analysis_tokenizer.encode_plus(normalized_transcript.replace(word.label, ""), return_tensors="pt")
                 empty_output = analysis_model(**empty_input)
                 empty_log_softmax = sum([torch.log(torch.nn.functional.softmax(empty_output.logits[0][i], dim=-1)[idx])
@@ -192,7 +195,7 @@ def filter_filler_word(normalized_transcript, normalized_segmented_path,
                 filler_log_softmax = sum([torch.log(torch.nn.functional.softmax(filler_output.logits[0][i], dim=-1)[idx])
                                             for i, idx in enumerate(filler_input['input_ids'][0]) ]).item()
 
-                if filler_log_softmax > empty_log_softmax:
+                if filler_log_softmax < empty_log_softmax:
                     continue
 
             if i != 0:

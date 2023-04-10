@@ -17,25 +17,28 @@ DEPTH = {
 
 
 @click.command()
-@click.option("-i", "--input", nargs=1, required=True,
-              type=click.Path(exists=True), help="Input filename")
-@click.option("-o", "--output", nargs=1,
-              type=click.Path(exists=False), help="Output filename")
+@click.option("-b", "--bert", type=bool, show_default=True,
+              default=False, help="Use BERT in timestamp identification")
 @click.option("-c", "--chunk_size", type=int, show_default=True,
               default=20, help="Audio chunk size")
 @click.option("-d", "--depth", show_default=True, default="f",
               type=click.Choice(DEPTH.keys()), help="Pipeline depth")
-def main(input, output, chunk_size, depth):
+@click.option("-i", "--input", nargs=1, required=True,
+              type=click.Path(exists=True), help="Input filename")
+@click.option("-o", "--output", nargs=1,
+              type=click.Path(exists=False), help="Output filename")
+def main(bert, chunk_size, depth, input, output):
 
     input_filename = input
     output_filename = output
     audio_chunk_size = chunk_size
     run_pipeline_depth = DEPTH[depth]  # allowed values: EXTRACT_AUDIO, GENERATE_TRANSCRIPT, IDENTIFY_TIMESTAMPS, FULL
+    use_bert = bert
 
-    run_pipeline(input_filename, output_filename, audio_chunk_size=audio_chunk_size, run_pipeline_depth=run_pipeline_depth)
+    run_pipeline(input_filename, output_filename, audio_chunk_size=audio_chunk_size, run_pipeline_depth=run_pipeline_depth, use_bert=use_bert)
 
 
-def run_pipeline(filename, output_filename=None, audio_chunk_size=20, run_pipeline_depth="FULL"):
+def run_pipeline(filename, output_filename=None, audio_chunk_size=20, run_pipeline_depth="FULL", use_bert=False):
 
     if run_pipeline_depth != "EXTRACT_AUDIO":
         offset_paths = stage1.extract(filename, audio_chunk_size=audio_chunk_size)
@@ -59,7 +62,7 @@ def run_pipeline(filename, output_filename=None, audio_chunk_size=20, run_pipeli
     timestamps = []
 
     for transcript, emissions, waveform_size, path, offset in tqdm(transcript_and_emissions, desc="Identifying timestamps of filler words"):
-        words = stage3.identify(path, transcript, audio_offset=offset, label_probabilities=emissions, waveform_size=waveform_size)
+        words = stage3.identify(path, transcript, audio_offset=offset, label_probabilities=emissions, waveform_size=waveform_size, use_bert=use_bert)
         timestamps.extend(words)
 
     with open("timestamps.txt", "w") as f:
