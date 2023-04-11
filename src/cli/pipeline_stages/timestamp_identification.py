@@ -5,10 +5,12 @@ os.environ["TRANSFORMERS_VERBOSITY"] = "critical"
 import re
 from typing import Tuple, List
 
+import numpy
 import torch
 import torchaudio
 import transformers
-from transformers import BertTokenizer, BertForMaskedLM
+import tensorflow as tf
+from transformers import BertTokenizer, TFBertForMaskedLM
 from torchaudio.pipelines import WAV2VEC2_ASR_LARGE_960H as WAV2VEC2
 from torchaudio.functional import resample as resample
 
@@ -163,9 +165,24 @@ def normalize_by_sampling_rate(segmented_path: List[Segment],
     return normalized_segmented_path
 
 
+def get_topk_predictions(input, k, tokenizer, model):
+
+    tokenized_inputs = tokenizer(input, return_tensors="tf")
+    outputs = model(tokenized_inputs["input_ids"])
+
+    top_k_indices = tf.math.top_k(outputs.logits, k).indices[0].numpy()
+    decoded_output = tokenizer.batch_decode(top_k_indices)
+    mask_token = tokenizer.encode(tokenizer.mask_token)[1:-1]
+    mask_index = numpy.where(tokenized_inputs['input_ids'].numpy()[0] == mask_token)[0][0]
+
+    decoded_output_words = decoded_output[mask_index]
+
+    return decoded_output_words
+
+
 def filter_filler_word(normalized_transcript, normalized_segmented_path,
                        analysis_tokenizer=BertTokenizer.from_pretrained("bert-large-cased"),
-                       analysis_model=BertForMaskedLM.from_pretrained("bert-large-cased", return_dict=True),
+                       analysis_model=TFBertForMaskedLM.from_pretrained("bert-large-cased", return_dict=True),
                        use_bert=False):
 
     words_marked_for_deletion = []
@@ -185,17 +202,9 @@ def filter_filler_word(normalized_transcript, normalized_segmented_path,
         if any(filter.match(word.label) for filter in match_list):
 
             if use_bert and any(filter.match(word.label) for filter in [amm_match, omm_match]):
-                empty_input = analysis_tokenizer.encode_plus(normalized_transcript.replace(word.label, ""), return_tensors="pt")
-                empty_output = analysis_model(**empty_input)
-                empty_log_softmax = sum([torch.log(torch.nn.functional.softmax(empty_output.logits[0][i], dim=-1)[idx])
-                                                for i, idx in enumerate(empty_input['input_ids'][0]) ]).item()
+                removed_predictions = get_topk_predictions(normalized_transcript.replace(word.label, ""), 5, analysis_tokenizer, analysis_model)
 
-                filler_input = analysis_tokenizer.encode_plus(normalized_transcript, return_tensors="pt")
-                filler_output = analysis_model(**filler_input)
-                filler_log_softmax = sum([torch.log(torch.nn.functional.softmax(filler_output.logits[0][i], dim=-1)[idx])
-                                            for i, idx in enumerate(filler_input['input_ids'][0]) ]).item()
-
-                if filler_log_softmax < empty_log_softmax:
+                if word.label not in removed_predictions:
                     continue
 
             if i != 0:
