@@ -202,9 +202,9 @@ def filter_filler_word(normalized_transcript, normalized_segmented_path,
         if any(filter.match(word.label) for filter in match_list):
 
             if use_bert and any(filter.match(word.label) for filter in [amm_match, omm_match]):
-                removed_predictions = get_topk_predictions(normalized_transcript.replace(word.label, ""), 5, analysis_tokenizer, analysis_model)
+                removed_predictions = get_topk_predictions(normalized_transcript.replace(word.label, "[MASK]"), 5, analysis_tokenizer, analysis_model)
 
-                if word.label not in removed_predictions:
+                if word.label in removed_predictions:
                     continue
 
             if i != 0:
