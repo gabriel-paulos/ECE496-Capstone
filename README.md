@@ -7,3 +7,5 @@ The master branch contains the CLI tool with some experimental additions; the b_
 Support for Apple Silicon installation for Tensorflow model packages:
   - Using Conda: https://developer.apple.com/metal/tensorflow-plugin/
   - Alternatively it can be done using Homebrew (dependency versions may differ): https://medium.com/@sorenlind/tensorflow-with-gpu-support-on-apple-silicon-mac-with-homebrew-and-without-conda-miniforge-915b2f15425b
+
+For better results one can integrate our code with the a models of this repo: https://github.com/jeanne-wang/svd_keyframe_interpolation
